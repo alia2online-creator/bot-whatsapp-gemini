@@ -1,13 +1,13 @@
 import axios from 'axios';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'mapple_token_123';
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
 export default async function handler(req, res) {
-  // 1. Verificación obligatoria para Meta Developers
+  // Verificación requerida por Meta Developers
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     return res.status(403).send('Token no coincide');
   }
 
-  // 2. Recepción de mensajes de WhatsApp
+  // Recepción de mensajes de WhatsApp
   if (req.method === 'POST') {
     const entry = req.body?.entry?.[0];
     const changes = entry?.changes?.[0]?.value;
@@ -30,15 +30,11 @@ export default async function handler(req, res) {
       const userText = message.text.body;
 
       try {
-        // Consulta a Gemini
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: `Eres el asistente de atención al cliente de Mapple Store. Responde de forma amable, clara y breve al siguiente mensaje:\n\n"${userText}"`,
-        });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const prompt = `Eres el asistente de atención al cliente de Mapple Store. Responde de forma cordial, concisa y útil al siguiente mensaje:\n\n"${userText}"`;
+        const result = await model.generateContent(prompt);
+        const replyText = result.response.text();
 
-        const replyText = response.text;
-
-        // Envío de la respuesta al cliente
         await axios.post(
           `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
           {
@@ -54,7 +50,7 @@ export default async function handler(req, res) {
           }
         );
       } catch (error) {
-        console.error('Error enviando respuesta:', error.response?.data || error.message);
+        console.error('Error enviando mensaje:', error.response?.data || error.message);
       }
     }
     return res.status(200).send('EVENT_RECEIVED');

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       const userText = message.text.body;
 
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
         const prompt = `Eres el asistente de atención al cliente de Mapple Store. Responde de forma cordial, concisa y útil al siguiente mensaje:\n\n"${userText}"`;
         const result = await model.generateContent(prompt);
         const replyText = result.response.text();
